@@ -1,7 +1,8 @@
 package br.com.ifba;
 
+import br.com.ifba.curso.dao.CursoDAO;
+import br.com.ifba.curso.dao.ICursoDAO;
 import br.com.ifba.curso.entity.Curso;
-import br.com.ifba.curso.repository.CursoRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 import java.util.List;
@@ -9,13 +10,14 @@ import java.util.Scanner;
 
 /**
  * Menu interativo para gerenciamento de Cursos via JPA + Hibernate.
- * Demonstra: salvar, atualizar, remover, listar e tratamento de exceções.
+ * Agora utiliza o padrão DAO com CursoDAO.
  *
  * @author PRG03 - IFBA
  */
 public class CursoSave {
 
-    private static final CursoRepository repository = new CursoRepository();
+    // Usa a interface para programar voltado à abstração (princípio do DAO)
+    private static final ICursoDAO cursoDAO = new CursoDAO();
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
@@ -30,6 +32,8 @@ public class CursoSave {
                     case 2 -> listarCursos();
                     case 3 -> atualizarCurso();
                     case 4 -> removerCurso();
+                    case 5 -> buscarPorCodigo();
+                    case 6 -> listarPorStatus();
                     case 0 -> System.out.println("Encerrando sistema...");
                     default -> System.out.println("⚠️  Opção inválida!");
                 }
@@ -46,15 +50,17 @@ public class CursoSave {
     // MENU
     // ─────────────────────────────────────────
     private static void exibirMenu() {
-        System.out.println("\n╔══════════════════════════════╗");
-        System.out.println("║    GERENCIAMENTO DE CURSOS   ║");
-        System.out.println("╠══════════════════════════════╣");
-        System.out.println("║  1 - Salvar novo curso       ║");
-        System.out.println("║  2 - Listar todos os cursos  ║");
-        System.out.println("║  3 - Atualizar curso         ║");
-        System.out.println("║  4 - Remover curso           ║");
-        System.out.println("║  0 - Sair                    ║");
-        System.out.println("╚══════════════════════════════╝");
+        System.out.println("\n╔══════════════════════════════════╗");
+        System.out.println("║    GERENCIAMENTO DE CURSOS (DAO) ║");
+        System.out.println("╠══════════════════════════════════╣");
+        System.out.println("║  1 - Salvar novo curso           ║");
+        System.out.println("║  2 - Listar todos os cursos      ║");
+        System.out.println("║  3 - Atualizar curso             ║");
+        System.out.println("║  4 - Remover curso               ║");
+        System.out.println("║  5 - Buscar por código           ║");
+        System.out.println("║  6 - Listar por status (ativo)   ║");
+        System.out.println("║  0 - Sair                        ║");
+        System.out.println("╚══════════════════════════════════╝");
     }
 
     // ─────────────────────────────────────────
@@ -67,7 +73,7 @@ public class CursoSave {
             curso.setNome(lerTexto("Nome do curso: "));
             curso.setCodigoCurso(lerTexto("Código do curso: "));
             curso.setAtivo(lerBoolean("Ativo? (s/n): "));
-            repository.salvar(curso);
+            cursoDAO.salvar(curso);
         } catch (RuntimeException e) {
             System.err.println("❌ " + e.getMessage());
         }
@@ -78,7 +84,7 @@ public class CursoSave {
     // ─────────────────────────────────────────
     private static void listarCursos() {
         try {
-            List<Curso> cursos = repository.listarTodos();
+            List<Curso> cursos = cursoDAO.listarTodos();
             if (cursos.isEmpty()) {
                 System.out.println("⚠️  Nenhum curso cadastrado.");
                 return;
@@ -96,7 +102,7 @@ public class CursoSave {
     private static void atualizarCurso() {
         try {
             Long id = (long) lerInt("ID do curso a atualizar: ");
-            Curso curso = repository.buscarPorId(id); // lança EntityNotFoundException se não achar
+            Curso curso = cursoDAO.buscarPorId(id);
 
             System.out.println("Curso atual: " + curso);
             System.out.println("(Deixe em branco para manter o valor atual)");
@@ -108,7 +114,7 @@ public class CursoSave {
             if (!novoCodigo.isBlank()) curso.setCodigoCurso(novoCodigo);
             curso.setAtivo(lerBoolean("Ativo? (s/n): "));
 
-            repository.atualizar(curso);
+            cursoDAO.atualizar(curso);
         } catch (EntityNotFoundException e) {
             System.err.println("❌ " + e.getMessage());
         } catch (RuntimeException e) {
@@ -122,11 +128,37 @@ public class CursoSave {
     private static void removerCurso() {
         try {
             Long id = (long) lerInt("ID do curso a remover: ");
-            repository.remover(id);
+            cursoDAO.remover(id);
         } catch (EntityNotFoundException e) {
             System.err.println("❌ " + e.getMessage());
         } catch (RuntimeException e) {
             System.err.println("❌ Erro ao remover: " + e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────
+    // OPERAÇÃO: BUSCAR POR CÓDIGO
+    // ─────────────────────────────────────────
+    private static void buscarPorCodigo() {
+        String codigo = lerTexto("Código do curso: ");
+        Curso curso = cursoDAO.buscarPorCodigo(codigo);
+        if (curso != null) {
+            System.out.println("Curso encontrado: " + curso);
+        } else {
+            System.out.println("⚠️  Nenhum curso com código '" + codigo + "' encontrado.");
+        }
+    }
+
+    // ─────────────────────────────────────────
+    // OPERAÇÃO: LISTAR POR STATUS
+    // ─────────────────────────────────────────
+    private static void listarPorStatus() {
+        boolean ativo = lerBoolean("Listar ativos? (s/n): ");
+        List<Curso> cursos = cursoDAO.buscarPorAtivo(ativo);
+        if (cursos.isEmpty()) {
+            System.out.println("⚠️  Nenhum curso " + (ativo ? "ativo" : "inativo") + " encontrado.");
+        } else {
+            cursos.forEach(System.out::println);
         }
     }
 
@@ -142,8 +174,7 @@ public class CursoSave {
         while (true) {
             try {
                 System.out.print(prompt);
-                int valor = Integer.parseInt(scanner.nextLine().trim());
-                return valor;
+                return Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
                 System.out.println("⚠️  Digite um número válido.");
             }
