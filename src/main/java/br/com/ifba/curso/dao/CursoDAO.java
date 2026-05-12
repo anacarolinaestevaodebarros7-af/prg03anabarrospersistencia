@@ -45,7 +45,7 @@ public class CursoDAO extends GenericDAO<Curso, Long> implements ICursoDAO {
                     Curso.class
             )
             .setParameter("codigo", codigoCurso)
-            .getResultSingleResult();
+            .getSingleResult();
         } catch (Exception e) {
             return null; // retorna null se não encontrar
         } finally {

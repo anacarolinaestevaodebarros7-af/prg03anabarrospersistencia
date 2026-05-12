@@ -28,14 +28,29 @@ public class CursoSave {
                 opcao = lerInt("Escolha uma opção: ");
 
                 switch (opcao) {
-                    case 1 -> salvarCurso();
-                    case 2 -> listarCursos();
-                    case 3 -> atualizarCurso();
-                    case 4 -> removerCurso();
-                    case 5 -> buscarPorCodigo();
-                    case 6 -> listarPorStatus();
-                    case 0 -> System.out.println("Encerrando sistema...");
-                    default -> System.out.println("⚠️  Opção inválida!");
+                    case 1:
+                        salvarCurso();
+                        break;
+                    case 2:
+                        listarCursos();
+                        break;
+                    case 3:
+                        atualizarCurso();
+                        break;
+                    case 4:
+                        removerCurso();
+                        break;
+                    case 5:
+                        buscarPorCodigo();
+                        break;
+                    case 6:
+                        listarPorStatus();
+                        break;
+                    case 0:
+                        System.out.println("Encerrando sistema...");
+                        break;
+                    default:
+                        System.out.println("⚠️  Opção inválida!");
                 }
 
             } while (opcao != 0);
