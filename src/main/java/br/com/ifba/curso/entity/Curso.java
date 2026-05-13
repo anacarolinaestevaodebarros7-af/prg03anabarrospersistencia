@@ -7,6 +7,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * Entidade JPA que representa um Curso.
+ * Mapeada para a tabela "curso" no banco de dados.
+ *
+ * @author PRG03 - IFBA
+ */
 @Entity
 @Table(name = "curso")
 public class Curso {
@@ -23,6 +29,8 @@ public class Curso {
 
     @Column(nullable = false)
     private Boolean ativo = true;
+
+    // ─── Getters e Setters ───────────────────
 
     public Long getId() {
         return id;
@@ -58,6 +66,9 @@ public class Curso {
 
     @Override
     public String toString() {
-        return "Curso{id=" + id + ", nome='" + nome + "', codigoCurso='" + codigoCurso + "', ativo=" + ativo + '}';
+        return "Curso{id=" + id
+                + ", nome='" + nome + '\''
+                + ", codigoCurso='" + codigoCurso + '\''
+                + ", ativo=" + ativo + '}';
     }
 }
