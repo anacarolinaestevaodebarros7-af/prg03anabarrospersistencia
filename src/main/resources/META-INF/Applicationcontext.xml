@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/tx
+           http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ATIVA VARREDURA DE ANOTAÇÕES (@Component, @Service, @Repository)
+         ═══════════════════════════════════════════════════════════ -->
+    <context:component-scan base-package="br.com.ifba" />
+
+    <!-- ═══════════════════════════════════════════════════════════
+         BEAN: DataSource (H2 em memória)
+         ═══════════════════════════════════════════════════════════ -->
+    <bean id="dataSource"
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.h2.Driver" />
+        <property name="url"
+                  value="jdbc:h2:mem:gerenciamento_curso;DB_CLOSE_DELAY=-1;MODE=MySQL" />
+        <property name="username" value="sa" />
+        <property name="password" value="" />
+    </bean>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         BEAN: EntityManagerFactory (JPA + Hibernate)
+         Substitui o persistence.xml — toda config fica aqui!
+         ═══════════════════════════════════════════════════════════ -->
+    <bean id="entityManagerFactory"
+          class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <!-- Pacote onde estão as @Entity -->
+        <property name="packagesToScan" value="br.com.ifba.curso.entity" />
+        <property name="jpaVendorAdapter">
+            <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+                <property name="showSql"         value="true" />
+                <property name="generateDdl"     value="true" />
+                <property name="databasePlatform"
+                          value="org.hibernate.dialect.H2Dialect" />
+            </bean>
+        </property>
+        <property name="jpaProperties">
+            <props>
+                <prop key="hibernate.format_sql">true</prop>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         BEAN: TransactionManager (gerencia @Transactional)
+         ═══════════════════════════════════════════════════════════ -->
+    <bean id="transactionManager"
+          class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory" />
+    </bean>
+
+    <!-- Ativa suporte a @Transactional -->
+    <tx:annotation-driven transaction-manager="transactionManager" />
+
+</beans>
