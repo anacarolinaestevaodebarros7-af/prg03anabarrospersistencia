@@ -1,203 +1,181 @@
 package br.com.ifba;
 
-import br.com.ifba.curso.dao.CursoDAO;
-import br.com.ifba.curso.dao.ICursoDAO;
 import br.com.ifba.curso.entity.Curso;
-import jakarta.persistence.EntityNotFoundException;
+import br.com.ifba.curso.service.ICursoService;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.List;
 import java.util.Scanner;
 
 /**
- * Menu interativo para gerenciamento de Cursos via JPA + Hibernate.
- * Agora utiliza o padrão DAO com CursoDAO.
+ * Ponto de entrada da aplicação.
+ *
+ * Aqui demonstramos o uso do Spring Framework:
+ *
+ *   ApplicationContext → "Fábrica" de Beans do Spring.
+ *                        Lê o applicationContext.xml, instancia e
+ *                        injeta todos os Beans automaticamente.
+ *
+ *   ctx.getBean()      → Recupera o Bean já configurado pelo Spring.
+ *                        Não usamos "new CursoService()" — o Spring faz isso!
+ *
+ * Fluxo de chamadas:
+ *   CursoSave → ICursoService (Bean: CursoService)
+ *                   → ICursoDAO   (Bean: CursoDAO)
+ *                       → EntityManager (gerenciado pelo Spring)
+ *                           → Banco H2
  *
  * @author PRG03 - IFBA
  */
 public class CursoSave {
 
-    // Usa a interface para programar voltado à abstração (princípio do DAO)
-    private static final ICursoDAO cursoDAO = new CursoDAO();
-    private static final Scanner scanner = new Scanner(System.in);
-
     public static void main(String[] args) {
-        try {
-            int opcao;
-            do {
-                exibirMenu();
-                opcao = lerInt("Escolha uma opção: ");
 
-                switch (opcao) {
-                    case 1:
-                        salvarCurso();
-                        break;
-                    case 2:
-                        listarCursos();
-                        break;
-                    case 3:
-                        atualizarCurso();
-                        break;
-                    case 4:
-                        removerCurso();
-                        break;
-                    case 5:
-                        buscarPorCodigo();
-                        break;
-                    case 6:
-                        listarPorStatus();
-                        break;
-                    case 0:
-                        System.out.println("Encerrando sistema...");
-                        break;
-                    default:
-                        System.out.println("⚠️  Opção inválida!");
-                }
+        // ── 1. Inicializa o Spring Container ──────────────────────────────
+        // O Spring lê o XML, cria os Beans e faz todas as injeções
+        ApplicationContext ctx =
+                new ClassPathXmlApplicationContext("applicationContext.xml");
 
-            } while (opcao != 0);
+        System.out.println("╔══════════════════════════════════════════╗");
+        System.out.println("║  Spring Container inicializado com êxito ║");
+        System.out.println("╚══════════════════════════════════════════╝");
 
-        } finally {
-            scanner.close();
-            JPAUtil.close();
-        }
+        // ── 2. Obtém o Bean de serviço ────────────────────────────────────
+        // Programa para a INTERFACE (ICursoService), não para a implementação
+        ICursoService cursoService = ctx.getBean(ICursoService.class);
+
+        // ── 3. Menu interativo ────────────────────────────────────────────
+        Scanner scanner = new Scanner(System.in);
+        int opcao;
+
+        do {
+            exibirMenu();
+            opcao = lerInt(scanner, "Escolha uma opção: ");
+
+            switch (opcao) {
+                case 1 -> salvarCurso(scanner, cursoService);
+                case 2 -> listarCursos(cursoService);
+                case 3 -> atualizarCurso(scanner, cursoService);
+                case 4 -> removerCurso(scanner, cursoService);
+                case 5 -> buscarPorCodigo(scanner, cursoService);
+                case 6 -> listarPorStatus(scanner, cursoService);
+                case 0 -> System.out.println("Encerrando sistema Spring...");
+                default -> System.out.println("⚠️  Opção inválida!");
+            }
+        } while (opcao != 0);
+
+        scanner.close();
+
+        // Fecha o contexto Spring (encerra EntityManagerFactory etc.)
+        ((ClassPathXmlApplicationContext) ctx).close();
+        System.out.println("✅ Contexto Spring encerrado.");
     }
 
-    // ─────────────────────────────────────────
-    // MENU
-    // ─────────────────────────────────────────
+    // ─── MENU ─────────────────────────────────────────────────────────────
     private static void exibirMenu() {
-        System.out.println("\n╔══════════════════════════════════╗");
-        System.out.println("║    GERENCIAMENTO DE CURSOS (DAO) ║");
-        System.out.println("╠══════════════════════════════════╣");
-        System.out.println("║  1 - Salvar novo curso           ║");
-        System.out.println("║  2 - Listar todos os cursos      ║");
-        System.out.println("║  3 - Atualizar curso             ║");
-        System.out.println("║  4 - Remover curso               ║");
-        System.out.println("║  5 - Buscar por código           ║");
-        System.out.println("║  6 - Listar por status (ativo)   ║");
-        System.out.println("║  0 - Sair                        ║");
-        System.out.println("╚══════════════════════════════════╝");
+        System.out.println("\n╔══════════════════════════════════════════╗");
+        System.out.println("║   GERENCIAMENTO DE CURSOS — SPRING DI    ║");
+        System.out.println("╠══════════════════════════════════════════╣");
+        System.out.println("║  1 - Salvar novo curso                   ║");
+        System.out.println("║  2 - Listar todos os cursos              ║");
+        System.out.println("║  3 - Atualizar curso                     ║");
+        System.out.println("║  4 - Remover curso                       ║");
+        System.out.println("║  5 - Buscar por código                   ║");
+        System.out.println("║  6 - Listar por status (ativo/inativo)   ║");
+        System.out.println("║  0 - Sair                                ║");
+        System.out.println("╚══════════════════════════════════════════╝");
     }
 
-    // ─────────────────────────────────────────
-    // OPERAÇÃO: SALVAR
-    // ─────────────────────────────────────────
-    private static void salvarCurso() {
+    // ─── SALVAR ────────────────────────────────────────────────────────────
+    private static void salvarCurso(Scanner sc, ICursoService service) {
         try {
             System.out.println("\n--- Novo Curso ---");
             Curso curso = new Curso();
-            curso.setNome(lerTexto("Nome do curso: "));
-            curso.setCodigoCurso(lerTexto("Código do curso: "));
-            curso.setAtivo(lerBoolean("Ativo? (s/n): "));
-            cursoDAO.salvar(curso);
-        } catch (RuntimeException e) {
+            curso.setNome(lerTexto(sc, "Nome do curso: "));
+            curso.setCodigoCurso(lerTexto(sc, "Código do curso: "));
+            curso.setAtivo(lerBoolean(sc, "Ativo? (s/n): "));
+            service.salvar(curso);
+        } catch (IllegalArgumentException e) {
             System.err.println("❌ " + e.getMessage());
         }
     }
 
-    // ─────────────────────────────────────────
-    // OPERAÇÃO: LISTAR
-    // ─────────────────────────────────────────
-    private static void listarCursos() {
-        try {
-            List<Curso> cursos = cursoDAO.listarTodos();
-            if (cursos.isEmpty()) {
-                System.out.println("⚠️  Nenhum curso cadastrado.");
-                return;
-            }
+    // ─── LISTAR ────────────────────────────────────────────────────────────
+    private static void listarCursos(ICursoService service) {
+        List<Curso> cursos = service.listarTodos();
+        if (cursos.isEmpty()) {
+            System.out.println("⚠️  Nenhum curso cadastrado.");
+        } else {
             System.out.println("\n--- Lista de Cursos ---");
             cursos.forEach(System.out::println);
-        } catch (RuntimeException e) {
-            System.err.println("❌ Erro ao listar cursos: " + e.getMessage());
         }
     }
 
-    // ─────────────────────────────────────────
-    // OPERAÇÃO: ATUALIZAR
-    // ─────────────────────────────────────────
-    private static void atualizarCurso() {
-        try {
-            Long id = (long) lerInt("ID do curso a atualizar: ");
-            Curso curso = cursoDAO.buscarPorId(id);
-
+    // ─── ATUALIZAR ─────────────────────────────────────────────────────────
+    private static void atualizarCurso(Scanner sc, ICursoService service) {
+        Long id = (long) lerInt(sc, "ID do curso a atualizar: ");
+        service.buscarPorId(id).ifPresentOrElse(curso -> {
             System.out.println("Curso atual: " + curso);
-            System.out.println("(Deixe em branco para manter o valor atual)");
-
-            String novoNome = lerTexto("Novo nome [" + curso.getNome() + "]: ");
-            String novoCodigo = lerTexto("Novo código [" + curso.getCodigoCurso() + "]: ");
-
-            if (!novoNome.isBlank()) curso.setNome(novoNome);
+            String novoNome   = lerTexto(sc, "Novo nome [" + curso.getNome() + "]: ");
+            String novoCodigo = lerTexto(sc, "Novo código [" + curso.getCodigoCurso() + "]: ");
+            if (!novoNome.isBlank())   curso.setNome(novoNome);
             if (!novoCodigo.isBlank()) curso.setCodigoCurso(novoCodigo);
-            curso.setAtivo(lerBoolean("Ativo? (s/n): "));
-
-            cursoDAO.atualizar(curso);
-        } catch (EntityNotFoundException e) {
-            System.err.println("❌ " + e.getMessage());
-        } catch (RuntimeException e) {
-            System.err.println("❌ Erro ao atualizar: " + e.getMessage());
-        }
+            curso.setAtivo(lerBoolean(sc, "Ativo? (s/n): "));
+            service.salvar(curso);
+        }, () -> System.err.println("❌ Curso com ID " + id + " não encontrado."));
     }
 
-    // ─────────────────────────────────────────
-    // OPERAÇÃO: REMOVER
-    // ─────────────────────────────────────────
-    private static void removerCurso() {
+    // ─── REMOVER ───────────────────────────────────────────────────────────
+    private static void removerCurso(Scanner sc, ICursoService service) {
         try {
-            Long id = (long) lerInt("ID do curso a remover: ");
-            cursoDAO.remover(id);
-        } catch (EntityNotFoundException e) {
+            Long id = (long) lerInt(sc, "ID do curso a remover: ");
+            service.remover(id);
+            System.out.println("✅ Curso removido com sucesso.");
+        } catch (IllegalArgumentException e) {
             System.err.println("❌ " + e.getMessage());
-        } catch (RuntimeException e) {
-            System.err.println("❌ Erro ao remover: " + e.getMessage());
         }
     }
 
-    // ─────────────────────────────────────────
-    // OPERAÇÃO: BUSCAR POR CÓDIGO
-    // ─────────────────────────────────────────
-    private static void buscarPorCodigo() {
-        String codigo = lerTexto("Código do curso: ");
-        Curso curso = cursoDAO.buscarPorCodigo(codigo);
-        if (curso != null) {
-            System.out.println("Curso encontrado: " + curso);
-        } else {
-            System.out.println("⚠️  Nenhum curso com código '" + codigo + "' encontrado.");
-        }
+    // ─── BUSCAR POR CÓDIGO ─────────────────────────────────────────────────
+    private static void buscarPorCodigo(Scanner sc, ICursoService service) {
+        String codigo = lerTexto(sc, "Código do curso: ");
+        service.buscarPorCodigo(codigo).ifPresentOrElse(
+                c -> System.out.println("Curso encontrado: " + c),
+                () -> System.out.println("⚠️  Nenhum curso com código '" + codigo + "'.")
+        );
     }
 
-    // ─────────────────────────────────────────
-    // OPERAÇÃO: LISTAR POR STATUS
-    // ─────────────────────────────────────────
-    private static void listarPorStatus() {
-        boolean ativo = lerBoolean("Listar ativos? (s/n): ");
-        List<Curso> cursos = cursoDAO.buscarPorAtivo(ativo);
+    // ─── LISTAR POR STATUS ─────────────────────────────────────────────────
+    private static void listarPorStatus(Scanner sc, ICursoService service) {
+        boolean ativo = lerBoolean(sc, "Listar ativos? (s/n): ");
+        List<Curso> cursos = service.buscarPorAtivo(ativo);
         if (cursos.isEmpty()) {
-            System.out.println("⚠️  Nenhum curso " + (ativo ? "ativo" : "inativo") + " encontrado.");
+            System.out.println("⚠️  Nenhum curso " + (ativo ? "ativo" : "inativo") + ".");
         } else {
             cursos.forEach(System.out::println);
         }
     }
 
-    // ─────────────────────────────────────────
-    // UTILITÁRIOS DE LEITURA
-    // ─────────────────────────────────────────
-    private static String lerTexto(String prompt) {
+    // ─── UTILITÁRIOS ───────────────────────────────────────────────────────
+    private static String lerTexto(Scanner sc, String prompt) {
         System.out.print(prompt);
-        return scanner.nextLine();
+        return sc.nextLine();
     }
 
-    private static int lerInt(String prompt) {
+    private static int lerInt(Scanner sc, String prompt) {
         while (true) {
+            System.out.print(prompt);
             try {
-                System.out.print(prompt);
-                return Integer.parseInt(scanner.nextLine().trim());
+                return Integer.parseInt(sc.nextLine().trim());
             } catch (NumberFormatException e) {
                 System.out.println("⚠️  Digite um número válido.");
             }
         }
     }
 
-    private static boolean lerBoolean(String prompt) {
+    private static boolean lerBoolean(Scanner sc, String prompt) {
         System.out.print(prompt);
-        return scanner.nextLine().trim().equalsIgnoreCase("s");
+        return sc.nextLine().trim().equalsIgnoreCase("s");
     }
 }
