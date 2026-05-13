@@ -1,34 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
-             http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd"
-             version="2.2">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-    <!-- IDENTIFICADOR DESSE PERSISTENCE UNIT -->
-    <persistence-unit name="gerenciamento_curso">
-        <properties>
+    <groupId>br.com.ifba</groupId>
+    <artifactId>prg03anabarrospersistencia</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
-            <!-- DADOS DA CONEXÃO -->
-            <property name="jakarta.persistence.jdbc.url"
-                      value="jdbc:h2:mem:gerenciamento_curso;DB_CLOSE_DELAY=-1;MODE=MySQL" />
-            <property name="jakarta.persistence.jdbc.user"     value="sa" />
-            <property name="jakarta.persistence.jdbc.password" value="" />
-            <property name="jakarta.persistence.jdbc.driver"   value="org.h2.Driver" />
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
-            <!-- PROPRIEDADES DO HIBERNATE -->
-            <property name="hibernate.dialect"
-                      value="org.hibernate.dialect.H2Dialect"/>
+    <dependencies>
+        <!-- Spring Framework -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>5.3.23</version>
+        </dependency>
 
-            <!-- Mostra SQL formatado no console -->
-            <property name="hibernate.format_sql" value="true" />
-            <property name="hibernate.show_sql"   value="true" />
+        <!-- JPA API -->
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
 
-            <!-- DETERMINA QUE SE O BANCO NÃO EXISTE ELE CRIA,
-                 SENÃO ATUALIZA O QUE JÁ EXISTE -->
-            <property name="hibernate.hbm2ddl.auto" value="update"/>
+        <!-- Hibernate ORM -->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>6.1.7.Final</version>
+        </dependency>
 
-        </properties>
-    </persistence-unit>
+        <!-- H2 Database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.1.214</version>
+        </dependency>
 
-</persistence>
+        <!-- Spring ORM for JPA integration -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>5.3.23</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <mainClass>br.com.ifba.CursoSave</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
