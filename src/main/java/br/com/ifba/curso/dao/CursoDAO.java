@@ -1,9 +1,9 @@
 package br.com.ifba.curso.dao;
 
 import br.com.ifba.curso.entity.Curso;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

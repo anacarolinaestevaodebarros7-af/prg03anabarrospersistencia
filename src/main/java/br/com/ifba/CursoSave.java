@@ -53,15 +53,32 @@ public class CursoSave {
             exibirMenu();
             opcao = lerInt(scanner, "Escolha uma opção: ");
 
+        
             switch (opcao) {
-                case 1 -> salvarCurso(scanner, cursoService);
-                case 2 -> listarCursos(cursoService);
-                case 3 -> atualizarCurso(scanner, cursoService);
-                case 4 -> removerCurso(scanner, cursoService);
-                case 5 -> buscarPorCodigo(scanner, cursoService);
-                case 6 -> listarPorStatus(scanner, cursoService);
-                case 0 -> System.out.println("Encerrando sistema Spring...");
-                default -> System.out.println("⚠️  Opção inválida!");
+                case 1:
+                    salvarCurso(scanner, cursoService);
+                    break;
+                case 2:
+                    listarCursos(cursoService);
+                    break;
+                case 3:
+                    atualizarCurso(scanner, cursoService);
+                    break;
+                case 4:
+                    removerCurso(scanner, cursoService);
+                    break;
+                case 5:
+                    buscarPorCodigo(scanner, cursoService);
+                    break;
+                case 6:
+                    listarPorStatus(scanner, cursoService);
+                    break;
+                case 0:
+                    System.out.println("Encerrando sistema Spring...");
+                    break;
+                default:
+                    System.out.println("⚠️  Opção inválida!");
+                    break;
             }
         } while (opcao != 0);
 

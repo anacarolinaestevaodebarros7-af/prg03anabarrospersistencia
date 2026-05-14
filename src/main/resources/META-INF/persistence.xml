@@ -7,6 +7,7 @@
 
     <!-- IDENTIFICADOR DESSE PERSISTENCE UNIT -->
     <persistence-unit name="gerenciamento_curso">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <properties>
 
             <!-- DADOS DA CONEXÃO -->
