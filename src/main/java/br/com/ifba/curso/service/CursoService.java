@@ -1,7 +1,7 @@
 package br.com.ifba.curso.service;
 
-import br.com.ifba.curso.dao.ICursoDAO;
 import br.com.ifba.curso.entity.Curso;
+import br.com.ifba.curso.repository.ICursoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,17 +10,28 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Camada de Serviço para regras de negócio de Curso.
+ * ════════════════════════════════════════════════════════════════
+ *  REFATORAÇÃO: CursoService — DAO → Spring Data JPA Repository
+ * ════════════════════════════════════════════════════════════════
  *
- * @Service      → Marca como Bean de serviço no contexto Spring.
- *                O Spring instancia e gerencia o ciclo de vida deste objeto.
+ * O que mudou em relação à versão anterior:
  *
- * @Autowired    → Injeção de Dependência: o Spring injeta automaticamente
- *                o Bean que implementa ICursoDAO (no caso, CursoDAO).
- *                Programamos para a INTERFACE, não para a implementação concreta.
+ *   ANTES:  private final ICursoDAO cursoDAO;
+ *   AGORA:  private final ICursoRepository cursoRepository;
  *
- * @Transactional → O Spring abre e fecha a transação automaticamente.
- *                  Em caso de exceção, faz rollback. Sem try/finally manual!
+ *   A lógica de negócio (@Transactional, validações) permanece
+ *   INTACTA — apenas o "canal" de acesso ao banco mudou.
+ *
+ *   Mapeamento de chamadas:
+ *     cursoDAO.salvar(curso)          → cursoRepository.save(curso)
+ *     cursoDAO.listarTodos()          → cursoRepository.findAll()
+ *     cursoDAO.buscarPorId(id)        → cursoRepository.findById(id)
+ *     cursoDAO.remover(id)            → cursoRepository.deleteById(id)
+ *     cursoDAO.buscarPorCodigo(c)     → cursoRepository.findByCodigoCurso(c)
+ *     cursoDAO.buscarPorAtivo(a)      → cursoRepository.findByAtivoOrderByNome(a)
+ *
+ * @Service      → Bean de serviço gerenciado pelo Spring.
+ * @Transactional → Spring abre/fecha transação automaticamente.
  *
  * @author PRG03 - IFBA
  */
@@ -28,75 +39,97 @@ import java.util.Optional;
 public class CursoService implements ICursoService {
 
     /**
-     * Injeção de Dependência via construtor (melhor prática com Spring).
-     * O Spring procura um Bean que implemente ICursoDAO e injeta aqui.
+     * Injeção via construtor — melhor prática com Spring.
+     *
+     * ANTES: injetava ICursoDAO (interface do DAO manual)
+     * AGORA: injeta ICursoRepository (interface Spring Data JPA)
+     *
+     * O Spring detecta o bean criado pelo <jpa:repositories> e injeta aqui.
      */
-    private final ICursoDAO cursoDAO;
+    private final ICursoRepository cursoRepository;
 
     @Autowired
-    public CursoService(ICursoDAO cursoDAO) {
-        this.cursoDAO = cursoDAO;
+    public CursoService(ICursoRepository cursoRepository) {
+        this.cursoRepository = cursoRepository;
     }
 
     // ─────────────────────────────────────────
     // SALVAR
-    // Transação obrigatória para escrita no banco
+    // save() faz persist se id==null, merge se id!=null
     // ─────────────────────────────────────────
     @Override
     @Transactional
     public Curso salvar(Curso curso) {
         validarCurso(curso);
-        return cursoDAO.salvar(curso);
+        Curso salvo = cursoRepository.save(curso);  // ← era cursoDAO.salvar()
+        System.out.println("✅ Curso salvo: " + salvo);
+        return salvo;
     }
 
     // ─────────────────────────────────────────
-    // LISTAR
-    // readOnly=true: otimização para operações de leitura
+    // LISTAR TODOS
     // ─────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public List<Curso> listarTodos() {
-        return cursoDAO.listarTodos();
+        return cursoRepository.findAll();  // ← era cursoDAO.listarTodos()
     }
 
     // ─────────────────────────────────────────
     // BUSCAR POR ID
+    // findById já retorna Optional<Curso> nativamente
     // ─────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public Optional<Curso> buscarPorId(Long id) {
-        return cursoDAO.buscarPorId(id);
+        return cursoRepository.findById(id);  // ← era cursoDAO.buscarPorId()
     }
 
     // ─────────────────────────────────────────
     // REMOVER
+    // deleteById lança EmptyResultDataAccessException se não existir
     // ─────────────────────────────────────────
     @Override
     @Transactional
     public void remover(Long id) {
-        cursoDAO.remover(id);
+        if (!cursoRepository.existsById(id)) {
+            throw new IllegalArgumentException("Curso com ID " + id + " não encontrado.");
+        }
+        cursoRepository.deleteById(id);  // ← era cursoDAO.remover()
+        System.out.println("🗑️  Curso ID " + id + " removido.");
     }
 
     // ─────────────────────────────────────────
     // BUSCAR POR CÓDIGO
+    // Query Method derivado automaticamente pelo Spring Data
     // ─────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public Optional<Curso> buscarPorCodigo(String codigoCurso) {
-        return cursoDAO.buscarPorCodigo(codigoCurso);
+        return cursoRepository.findByCodigoCurso(codigoCurso); // ← era cursoDAO.buscarPorCodigo()
     }
 
     // ─────────────────────────────────────────
-    // BUSCAR POR STATUS
+    // BUSCAR POR STATUS ATIVO
     // ─────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public List<Curso> buscarPorAtivo(boolean ativo) {
-        return cursoDAO.buscarPorAtivo(ativo);
+        return cursoRepository.findByAtivoOrderByNome(ativo); // ← era cursoDAO.buscarPorAtivo()
     }
 
     // ─────────────────────────────────────────
-    // VALIDAÇÃO (Regra de Negócio)
+    // BUSCAR POR NOME (BÔNUS — novo!)
+    // Não existia antes; Spring Data entrega pelo nome do método
+    // ─────────────────────────────────────────
+    @Override
+    @Transactional(readOnly = true)
+    public List<Curso> buscarPorNome(String nome) {
+        return cursoRepository.findByNomeContainingIgnoreCase(nome);
+    }
+
+    // ─────────────────────────────────────────
+    // VALIDAÇÃO (regra de negócio — permanece igual)
     // ─────────────────────────────────────────
     private void validarCurso(Curso curso) {
         if (curso.getNome() == null || curso.getNome().isBlank()) {
